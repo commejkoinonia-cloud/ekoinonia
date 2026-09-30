@@ -3,6 +3,8 @@ import '../../models/utilisateur_profil.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_theme.dart';
 import '../enfants/enfants_list_screen.dart';
+import '../scanner/qr_scanner_screen.dart';
+import '../';
 
 /// Écran principal après connexion : contient la barre de navigation basse
 /// (les sections les plus utilisées) et le menu tiroir (tout le reste,
@@ -39,16 +41,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final profil = snapshot.data?.profil;
 
         return Scaffold(
-          appBar: AppBar(title: const Text('ECODIM')),
+          appBar: AppBar(
+            title: const Text('ECODIM'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.qr_code_scanner),
+                tooltip: 'Scanner un QR code',
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => QrScannerScreen(profil: profil),
+                  ));
+                },
+              ),
+            ],
+          ),
           drawer: _MenuTiroir(profil: profil),
-          body: _indexActif == 1
-              ? EnfantsListScreen(profil: profil)
-              : Center(
-                  child: Text(
-                    _pages[_indexActif].titre,
-                    style: const TextStyle(fontSize: 20, color: AppColors.texte),
-                  ),
-                ),
+          body: _indexActif == 0
+              ? AccueilScreen(profil: profil)
+              : _indexActif == 1
+                  ? EnfantsListScreen(profil: profil)
+                  : Center(
+                      child: Text(
+                        _pages[_indexActif].titre,
+                        style: const TextStyle(fontSize: 20, color: AppColors.texte),
+                      ),
+                    ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _indexActif,
             onTap: (index) => setState(() => _indexActif = index),
