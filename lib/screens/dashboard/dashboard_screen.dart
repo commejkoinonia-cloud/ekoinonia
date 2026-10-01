@@ -5,6 +5,8 @@ import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../enfants/enfants_list_screen.dart';
+import '../classes/classes_list_screen.dart';
+import '../materiel/materiel_list_screen.dart';
 import '../moniteurs/moniteurs_list_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profil/profil_screen.dart';
@@ -227,11 +229,29 @@ class _MenuTiroir extends StatelessWidget {
                 ));
               },
             ),
-            _itemMenu(context, Icons.class_outlined, 'Classes'),
+            _itemMenu(
+              context,
+              Icons.class_outlined,
+              'Classes',
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ClassesListScreen(profil: p),
+                ));
+              },
+            ),
             _itemMenu(context, Icons.assignment_outlined, 'Devoirs'),
             _itemMenu(context, Icons.event_outlined, 'Activités'),
             _itemMenu(context, Icons.card_giftcard_outlined, 'Opération Enfant Noël'),
-            _itemMenu(context, Icons.inventory_2_outlined, 'Matériel'),
+            _itemMenu(
+              context,
+              Icons.inventory_2_outlined,
+              'Matériel',
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => MaterielListScreen(profil: p),
+                ));
+              },
+            ),
             _itemMenu(context, Icons.campaign_outlined, 'Communications'),
             _itemMenu(context, Icons.shield_outlined, 'Discipline'),
 

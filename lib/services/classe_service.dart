@@ -12,4 +12,16 @@ class ClasseService {
               .toList(),
         );
   }
+
+  Future<void> creerClasse(Classe classe) async {
+    await _collection.add(classe.versFirestore());
+  }
+
+  Future<void> modifierClasse(String id, Classe classe) async {
+    await _collection.doc(id).update(classe.versFirestore());
+  }
+
+  Future<void> supprimerClasse(String id) async {
+    await _collection.doc(id).delete();
+  }
 }
