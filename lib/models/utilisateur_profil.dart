@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 /// Représente le document `utilisateurs/{uid}` de la personne connectée.
 ///
 /// Toute la logique "qui a le droit de voir/faire quoi" dans l'interface
@@ -12,6 +13,7 @@ class UtilisateurProfil {
   final List<String> fonctions;
   final String? imageUrl;
   final bool actif;
+  final DateTime? dateDerniereConsultationNotifications;
 
   UtilisateurProfil({
     required this.uid,
@@ -21,6 +23,7 @@ class UtilisateurProfil {
     required this.fonctions,
     required this.actif,
     this.imageUrl,
+    this.dateDerniereConsultationNotifications
   });
 
   factory UtilisateurProfil.depuisFirestore(String uid, Map<String, dynamic> donnees) {
@@ -32,6 +35,7 @@ class UtilisateurProfil {
       fonctions: List<String>.from(donnees['fonctions'] ?? []),
       imageUrl: donnees['imageUrl'],
       actif: donnees['actif'] ?? true,
+      dateDerniereConsultationNotifications: (donnees['dateDerniereConsultationNotifications'] as Timestamp?)?.toDate(),
     );
   }
 

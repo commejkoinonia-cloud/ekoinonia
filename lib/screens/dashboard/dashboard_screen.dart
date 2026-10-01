@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../models/notification_app.dart';
 import '../../models/utilisateur_profil.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../enfants/enfants_list_screen.dart';
+import '../moniteurs/moniteurs_list_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../profil/profil_screen.dart';
 import '../scanner/qr_scanner_screen.dart';
-import '../';
+import 'accueil_screen.dart';
 
 /// Écran principal après connexion : contient la barre de navigation basse
 /// (les sections les plus utilisées) et le menu tiroir (tout le reste,
@@ -53,6 +58,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ));
                 },
               ),
+              _clocheNotifications(profil),
+              _avatarUtilisateur(profil),
+              const SizedBox(width: 8),
             ],
           ),
           drawer: _MenuTiroir(profil: profil),
@@ -60,12 +68,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ? AccueilScreen(profil: profil)
               : _indexActif == 1
                   ? EnfantsListScreen(profil: profil)
-                  : Center(
-                      child: Text(
-                        _pages[_indexActif].titre,
-                        style: const TextStyle(fontSize: 20, color: AppColors.texte),
-                      ),
-                    ),
+                  : _indexActif == 3
+                      ? ProfilScreen(profil: profil)
+                      : Center(
+                          child: Text(
+                            _pages[_indexActif].titre,
+                            style: const TextStyle(fontSize: 20, color: AppColors.texte),
+                          ),
+                        ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _indexActif,
             onTap: (index) => setState(() => _indexActif = index),
@@ -78,6 +88,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       },
+    );
+  }
+
+  /// Cloche de notifications avec un badge rouge indiquant le nombre de
+  /// notifications plus récentes que la dernière consultation de la
+  /// personne connectée (voir NotificationService).
+  Widget _clocheNotifications(UtilisateurProfil? profil) {
+    return StreamBuilder<List<AppNotification>>(
+      stream: NotificationService().streamNotifications(profil?.classeId),
+      builder: (context, snapshot) {
+        final notifications = snapshot.data ?? [];
+        final derniereConsultation = profil?.dateDerniereConsultationNotifications;
+        final nombreNonLues = notifications
+            .where((n) => derniereConsultation == null || n.dateCreation.isAfter(derniereConsultation))
+            .length;
+
+        return IconButton(
+          tooltip: 'Notifications',
+          icon: Badge(
+            label: Text('$nombreNonLues'),
+            isLabelVisible: nombreNonLues > 0,
+            child: const Icon(Icons.notifications_outlined),
+          ),
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => NotificationsScreen(profil: profil),
+            ));
+          },
+        );
+      },
+    );
+  }
+
+  /// Avatar de la personne connectée : sa photo si elle en a une, sinon
+  /// simplement l'initiale de son prénom. Un appui amène directement sur
+  /// l'onglet "Profil".
+  Widget _avatarUtilisateur(UtilisateurProfil? profil) {
+    final initiale = (profil?.prenom.isNotEmpty ?? false) ? profil!.prenom[0].toUpperCase() : '?';
+
+    return GestureDetector(
+      onTap: () => setState(() => _indexActif = 3),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: CircleAvatar(
+          radius: 16,
+          backgroundColor: AppColors.violetBleute,
+          backgroundImage: (profil?.imageUrl != null && profil!.imageUrl!.isNotEmpty)
+              ? NetworkImage(profil.imageUrl!)
+              : null,
+          child: (profil?.imageUrl == null || profil!.imageUrl!.isEmpty)
+              ? Text(initiale, style: const TextStyle(color: AppColors.blanc, fontSize: 13, fontWeight: FontWeight.bold))
+              : null,
+        ),
+      ),
     );
   }
 
@@ -153,7 +217,16 @@ class _MenuTiroir extends StatelessWidget {
 
             // Sections visibles par tout le monde (lecture ouverte à tous
             // dans les règles de sécurité).
-            _itemMenu(context, Icons.groups_outlined, 'Moniteurs'),
+            _itemMenu(
+              context,
+              Icons.groups_outlined,
+              'Moniteurs',
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const MoniteursListScreen(),
+                ));
+              },
+            ),
             _itemMenu(context, Icons.class_outlined, 'Classes'),
             _itemMenu(context, Icons.assignment_outlined, 'Devoirs'),
             _itemMenu(context, Icons.event_outlined, 'Activités'),
@@ -182,14 +255,17 @@ class _MenuTiroir extends StatelessWidget {
     );
   }
 
-  ListTile _itemMenu(BuildContext context, IconData icone, String titre) {
+  ListTile _itemMenu(BuildContext context, IconData icone, String titre, {VoidCallback? onTap}) {
     return ListTile(
       leading: Icon(icone, color: AppColors.bleu),
       title: Text(titre),
       onTap: () {
         Navigator.of(context).pop();
-        // TODO : brancher la navigation vers l'écran correspondant
-        // au fur et à mesure qu'on construit chaque section.
+        if (onTap != null) {
+          onTap();
+        }
+        // Les sections sans action pour l'instant : TODO, branchées au
+        // fur et à mesure qu'on construit chaque écran.
       },
     );
   }

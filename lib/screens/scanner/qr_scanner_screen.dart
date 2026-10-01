@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../models/utilisateur_profil.dart';
 import '../../theme/app_theme.dart';
 import '../enfants/enfant_detail_screen.dart';
+import '../moniteurs/moniteur_detail_screen.dart';
 
 /// Ouvre la caméra et attend de détecter un QR code généré par l'app
 /// (format "enfant:{id}", et plus tard "moniteur:{id}"). On ignore
@@ -47,8 +48,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       return;
     }
 
-    // Préparé pour plus tard, quand le QR moniteur existera :
-    // if (valeurBrute.startsWith('moniteur:')) { ... }
+    if (valeurBrute.startsWith('moniteur:')) {
+      final uid = valeurBrute.substring('moniteur:'.length);
+      setState(() => _dejaTraite = true);
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => MoniteurDetailScreen(uid: uid)),
+      );
+      return;
+    }
 
     _afficherCodeNonReconnu();
   }
