@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'lecteur_firestore.dart';
 
 class Materiel {
   final String id;
@@ -28,18 +29,28 @@ class Materiel {
   /// Vrai quand le stock est descendu sous le seuil d'alerte défini.
   bool get stockBas => quantiteMinimale != null && quantite < quantiteMinimale!;
 
+  /// Les données Firestore arrivent en `dynamic` : chaque champ passe par
+  /// LecteurFirestore pour qu'une valeur du mauvais type stockée en base ne
+  /// fasse pas planter toute la liste du matériel. Avant,
+  /// `quantite: donnees['quantite'] ?? 0` levait
+  /// "type 'String' is not a subtype of type 'int'" dès qu'un article avait
+  /// sa quantité en texte ("5" au lieu de 5).
   factory Materiel.depuisFirestore(String id, Map<String, dynamic> donnees) {
     return Materiel(
       id: id,
-      nom: donnees['nom'] ?? '',
-      categorie: donnees['categorie'] ?? '',
-      typeMateriel: donnees['typeMateriel'] ?? 'durable',
-      quantite: donnees['quantite'] ?? 0,
-      quantiteMinimale: donnees['quantiteMinimale'],
-      etat: donnees['etat'],
-      dateAcquisition: (donnees['dateAcquisition'] as Timestamp?)?.toDate(),
-      responsableId: donnees['responsableId'],
-      remarque: donnees['remarque'] ?? '',
+      nom: LecteurFirestore.texte(donnees['nom']),
+      categorie: LecteurFirestore.texte(donnees['categorie']),
+      typeMateriel: LecteurFirestore.texteOuDefaut(donnees['typeMateriel'], 'durable'),
+      // quantite est obligatoire : une valeur illisible ou absente devient 0
+      // plutôt que de faire planter la liste entière.
+      quantite: LecteurFirestore.intOuNull(donnees['quantite']) ?? 0,
+      // Seuil d'alerte facultatif : reste null si absent ou illisible, ce qui
+      // désactive simplement l'alerte de stock bas (getter stockBas).
+      quantiteMinimale: LecteurFirestore.intOuNull(donnees['quantiteMinimale']),
+      etat: LecteurFirestore.texteOuNull(donnees['etat']),
+      dateAcquisition: LecteurFirestore.dateOuNull(donnees['dateAcquisition']),
+      responsableId: LecteurFirestore.texteOuNull(donnees['responsableId']),
+      remarque: LecteurFirestore.texte(donnees['remarque']),
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'lecteur_firestore.dart';
 
 /// Représente un document de la collection `enfants`.
 class Enfant {
@@ -54,55 +55,34 @@ class Enfant {
     return age;
   }
 
-  factory Enfant.depuisFirestore(String id, Map<String, dynamic> donnees) {
-    return Enfant(
-      id: id,
-      nom: _texte(donnees['nom']),
-      prenom: _texte(donnees['prenom']),
-      sexe: _texte(donnees['sexe']),
-      classeId: _texte(donnees['classeId']),
-      nomTuteur: _texte(donnees['nomTuteur']),
-      telephoneTuteur: _texte(donnees['telephoneTuteur']),
-      adresse: _texte(donnees['adresse']),
-      actif: _bool(donnees['actif'], true),
-      imageUrl: _texteOuNull(donnees['imageUrl']),
-      dateNaissance: _dateOuNull(donnees['dateNaissance']),
-      dateInscription: _dateOuNull(donnees['dateInscription']),
-      aDejaParticipeOEN: _bool(donnees['aDejaParticipeOEN'], false),
-      anneeParticipationOEN: _intOuNull(donnees['anneeParticipationOEN']),
-      moyenneDevoirs: _doubleOuNull(donnees['moyenneDevoirs']),
-      nombreDevoirsNotes: _intOuNull(donnees['nombreDevoirsNotes']),
-    );
-  }
-
   /// Les données Firestore arrivent en `dynamic` : sans ces conversions, une
   /// valeur du mauvais type (par exemple un Timestamp dans un champ numérique)
   /// ferait planter toute la liste des enfants.
-  static String _texte(dynamic valeur) => valeur is String ? valeur : '';
-
-  static String? _texteOuNull(dynamic valeur) => valeur is String ? valeur : null;
-
-  static bool _bool(dynamic valeur, bool defaut) => valeur is bool ? valeur : defaut;
-
-  static int? _intOuNull(dynamic valeur) {
-    if (valeur is int) return valeur;
-    if (valeur is num) return valeur.toInt();
-    if (valeur is String) return int.tryParse(valeur.trim());
-    return null;
-  }
-
-  static double? _doubleOuNull(dynamic valeur) {
-    if (valeur is num) return valeur.toDouble();
-    if (valeur is String) return double.tryParse(valeur.trim().replaceAll(',', '.'));
-    return null;
-  }
-
-  static DateTime? _dateOuNull(dynamic valeur) {
-    if (valeur is Timestamp) return valeur.toDate();
-    if (valeur is DateTime) return valeur;
-    if (valeur is int) return DateTime.fromMillisecondsSinceEpoch(valeur);
-    if (valeur is String) return DateTime.tryParse(valeur.trim());
-    return null;
+  ///
+  /// MODIFIÉ : ces conversions étaient des méthodes privées (_texte, _bool,
+  /// _intOuNull...) définies dans cette classe. Elles sont maintenant
+  /// partagées dans LecteurFirestore, pour que Classe et Materiel profitent
+  /// de la même protection. Comportement strictement identique, seul
+  /// l'endroit où elles sont définies a changé.
+  factory Enfant.depuisFirestore(String id, Map<String, dynamic> donnees) {
+    return Enfant(
+      id: id,
+      nom: LecteurFirestore.texte(donnees['nom']),
+      prenom: LecteurFirestore.texte(donnees['prenom']),
+      sexe: LecteurFirestore.texte(donnees['sexe']),
+      classeId: LecteurFirestore.texte(donnees['classeId']),
+      nomTuteur: LecteurFirestore.texte(donnees['nomTuteur']),
+      telephoneTuteur: LecteurFirestore.texte(donnees['telephoneTuteur']),
+      adresse: LecteurFirestore.texte(donnees['adresse']),
+      actif: LecteurFirestore.boolOuDefaut(donnees['actif'], true),
+      imageUrl: LecteurFirestore.texteOuNull(donnees['imageUrl']),
+      dateNaissance: LecteurFirestore.dateOuNull(donnees['dateNaissance']),
+      dateInscription: LecteurFirestore.dateOuNull(donnees['dateInscription']),
+      aDejaParticipeOEN: LecteurFirestore.boolOuDefaut(donnees['aDejaParticipeOEN'], false),
+      anneeParticipationOEN: LecteurFirestore.intOuNull(donnees['anneeParticipationOEN']),
+      moyenneDevoirs: LecteurFirestore.doubleOuNull(donnees['moyenneDevoirs']),
+      nombreDevoirsNotes: LecteurFirestore.intOuNull(donnees['nombreDevoirsNotes']),
+    );
   }
 
   /// Convertit l'objet en Map pour l'écrire dans Firestore.

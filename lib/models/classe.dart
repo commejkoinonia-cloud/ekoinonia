@@ -1,3 +1,5 @@
+import 'lecteur_firestore.dart';
+
 /// Représente un document de la collection `classes`.
 class Classe {
   final String id;
@@ -18,15 +20,23 @@ class Classe {
     this.moniteurIds = const [],
   });
 
+  /// Les données Firestore arrivent en `dynamic` : chaque champ passe par
+  /// LecteurFirestore pour qu'une valeur du mauvais type stockée en base
+  /// (ex: `ageMin` en texte "6") ne fasse pas planter toute la liste des
+  /// classes. Avant, `ageMin: donnees['ageMin']` levait
+  /// "type 'String' is not a subtype of type 'int'".
   factory Classe.depuisFirestore(String id, Map<String, dynamic> donnees) {
     return Classe(
       id: id,
-      nom: donnees['nom'] ?? '',
-      description: donnees['description'] ?? '',
-      ageMin: donnees['ageMin'],
-      ageMax: donnees['ageMax'],
-      moniteurIds: List<String>.from(donnees['moniteurIds'] ?? []),
-      actif: donnees['actif'] ?? true,
+      nom: LecteurFirestore.texte(donnees['nom']),
+      description: LecteurFirestore.texte(donnees['description']),
+      // ageMin/ageMax : un nombre, mais tolère "6" ou 6.0 stockés en base.
+      ageMin: LecteurFirestore.intOuNull(donnees['ageMin']),
+      ageMax: LecteurFirestore.intOuNull(donnees['ageMax']),
+      // moniteurIds : tolère un champ absent, ou un seul uid écrit sans liste.
+      moniteurIds: LecteurFirestore.listeDeTextes(donnees['moniteurIds']),
+      // actif : tolère un "true" écrit en texte.
+      actif: LecteurFirestore.boolOuDefaut(donnees['actif'], true),
     );
   }
 
