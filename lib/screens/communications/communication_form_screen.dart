@@ -9,9 +9,11 @@ import '../../services/communication_service.dart';
 import '../../services/image_upload_service.dart';
 import '../../theme/app_theme.dart';
 
+/// Un seul écran pour PUBLIER et MODIFIER, comme pour les enfants/classes.
 class CommunicationFormScreen extends StatefulWidget {
   final UtilisateurProfil? profil;
-  const CommunicationFormScreen({super.key, required this.profil});
+  final Communication? communicationExistante;
+  const CommunicationFormScreen({super.key, required this.profil, this.communicationExistante});
 
   @override
   State<CommunicationFormScreen> createState() => _CommunicationFormScreenState();
@@ -19,13 +21,27 @@ class CommunicationFormScreen extends StatefulWidget {
 
 class _CommunicationFormScreenState extends State<CommunicationFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titreController = TextEditingController();
-  final _contenuController = TextEditingController();
+  late final TextEditingController _titreController;
+  late final TextEditingController _contenuController;
 
   String _destinataire = 'tous';
   String? _classeSelectionnee;
-  File? _imageChoisie;
+  File? _nouvelleImage;
+  List<String> _piecesJointesExistantes = [];
   bool _enregistrementEnCours = false;
+
+  bool get _modeEdition => widget.communicationExistante != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.communicationExistante;
+    _titreController = TextEditingController(text: c?.titre ?? '');
+    _contenuController = TextEditingController(text: c?.contenu ?? '');
+    _destinataire = c?.destinataire ?? 'tous';
+    _classeSelectionnee = c?.classeId;
+    _piecesJointesExistantes = c?.piecesJointes ?? [];
+  }
 
   @override
   void dispose() {
@@ -36,7 +52,7 @@ class _CommunicationFormScreenState extends State<CommunicationFormScreen> {
 
   Future<void> _choisirImage() async {
     final image = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (image != null) setState(() => _imageChoisie = File(image.path));
+    if (image != null) setState(() => _nouvelleImage = File(image.path));
   }
 
   Future<void> _publier() async {
@@ -51,24 +67,31 @@ class _CommunicationFormScreenState extends State<CommunicationFormScreen> {
     setState(() => _enregistrementEnCours = true);
 
     try {
-      final piecesJointes = <String>[];
-      if (_imageChoisie != null) {
-        final lien = await ImageUploadService().televerserImage(_imageChoisie!);
+      // On ne retéléverse une image que si une nouvelle a été choisie ;
+      // sinon on garde telles quelles les pièces jointes déjà existantes.
+      final piecesJointes = List<String>.from(_piecesJointesExistantes);
+      if (_nouvelleImage != null) {
+        final lien = await ImageUploadService().televerserImage(_nouvelleImage!);
+        piecesJointes.clear();
         piecesJointes.add(lien);
       }
 
       final communication = Communication(
-        id: '',
+        id: widget.communicationExistante?.id ?? '',
         titre: _titreController.text.trim(),
         contenu: _contenuController.text.trim(),
-        datePublication: DateTime.now(),
+        datePublication: widget.communicationExistante?.datePublication ?? DateTime.now(),
         destinataire: _destinataire,
         classeId: _destinataire == 'classe_specifique' ? _classeSelectionnee : null,
-        auteurId: widget.profil?.uid ?? '',
+        auteurId: widget.communicationExistante?.auteurId ?? widget.profil?.uid ?? '',
         piecesJointes: piecesJointes,
       );
 
-      await CommunicationService().publierCommunication(communication);
+      if (_modeEdition) {
+        await CommunicationService().modifierCommunication(widget.communicationExistante!.id, communication);
+      } else {
+        await CommunicationService().publierCommunication(communication);
+      }
       if (mounted) Navigator.of(context).pop();
     } catch (erreur) {
       if (mounted) {
@@ -84,7 +107,7 @@ class _CommunicationFormScreenState extends State<CommunicationFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nouvelle communication')),
+      appBar: AppBar(title: Text(_modeEdition ? 'Modifier la communication' : 'Nouvelle communication')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -135,7 +158,13 @@ class _CommunicationFormScreenState extends State<CommunicationFormScreen> {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               icon: const Icon(Icons.image_outlined),
-              label: Text(_imageChoisie == null ? 'Ajouter une image (optionnel)' : 'Image sélectionnée ✓'),
+              label: Text(
+                _nouvelleImage != null
+                    ? 'Nouvelle image sélectionnée ✓'
+                    : _piecesJointesExistantes.isNotEmpty
+                        ? 'Image déjà jointe (appuie pour la remplacer)'
+                        : 'Ajouter une image (optionnel)',
+              ),
               onPressed: _choisirImage,
             ),
 
@@ -147,7 +176,7 @@ class _CommunicationFormScreenState extends State<CommunicationFormScreen> {
                       width: 20, height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.blanc),
                     )
-                  : const Text('Publier'),
+                  : Text(_modeEdition ? 'Enregistrer les modifications' : 'Publier'),
             ),
           ],
         ),

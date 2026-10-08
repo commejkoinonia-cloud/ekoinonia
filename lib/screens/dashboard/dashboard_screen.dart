@@ -4,8 +4,13 @@ import '../../models/utilisateur_profil.dart';
 import '../../services/auth_service.dart';
 import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
+import '../cours/cours_screen.dart';
 import '../enfants/enfants_list_screen.dart';
 import '../classes/classes_list_screen.dart';
+import '../devoirs/devoirs_list_screen.dart';
+import '../finances/finances_list_screen.dart';
+import '../communications/communications_list_screen.dart';
+import '../discipline/discipline_list_screen.dart';
 import '../materiel/materiel_list_screen.dart';
 import '../moniteurs/moniteurs_list_screen.dart';
 import '../notifications/notifications_screen.dart';
@@ -70,14 +75,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ? AccueilScreen(profil: profil)
               : _indexActif == 1
                   ? EnfantsListScreen(profil: profil)
-                  : _indexActif == 3
-                      ? ProfilScreen(profil: profil)
-                      : Center(
-                          child: Text(
-                            _pages[_indexActif].titre,
-                            style: const TextStyle(fontSize: 20, color: AppColors.texte),
-                          ),
-                        ),
+                  : _indexActif == 2
+                      ? CoursScreen(profil: profil)
+                      : _indexActif == 3
+                          ? ProfilScreen(profil: profil)
+                          : Center(
+                              child: Text(
+                                _pages[_indexActif].titre,
+                                style: const TextStyle(fontSize: 20, color: AppColors.texte),
+                              ),
+                            ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: _indexActif,
             onTap: (index) => setState(() => _indexActif = index),
@@ -239,7 +246,16 @@ class _MenuTiroir extends StatelessWidget {
                 ));
               },
             ),
-            _itemMenu(context, Icons.assignment_outlined, 'Devoirs'),
+            _itemMenu(
+              context,
+              Icons.assignment_outlined,
+              'Devoirs',
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => DevoirsListScreen(profil: p),
+                ));
+              },
+            ),
             _itemMenu(context, Icons.event_outlined, 'Activités'),
             _itemMenu(context, Icons.card_giftcard_outlined, 'Opération Enfant Noël'),
             _itemMenu(
@@ -252,13 +268,40 @@ class _MenuTiroir extends StatelessWidget {
                 ));
               },
             ),
-            _itemMenu(context, Icons.campaign_outlined, 'Communications'),
-            _itemMenu(context, Icons.shield_outlined, 'Discipline'),
+            _itemMenu(
+              context,
+              Icons.campaign_outlined,
+              'Communications',
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => CommunicationsListScreen(profil: p),
+                ));
+              },
+            ),
+            _itemMenu(
+              context,
+              Icons.shield_outlined,
+              'Discipline',
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => DisciplineListScreen(profil: p),
+                ));
+              },
+            ),
 
             // Sections sensibles : uniquement admin ou caissière/adjoint.
             if (p != null && (p.estAdmin || p.estCaissiere)) ...[
               const Divider(),
-              _itemMenu(context, Icons.savings_outlined, 'Finances'),
+              _itemMenu(
+                context,
+                Icons.savings_outlined,
+                'Finances',
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => FinancesListScreen(profil: p),
+                  ));
+                },
+              ),
               _itemMenu(context, Icons.handshake_outlined, 'Partenaires'),
             ],
 

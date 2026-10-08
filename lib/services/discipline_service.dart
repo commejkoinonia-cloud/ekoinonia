@@ -42,7 +42,9 @@ class DisciplineService {
       'type': 'discipline',
       'referenceCollection': 'discipline',
       'referenceId': refEntree.id,
-      'creePar': entree.signalPar,
+      // `creePar` reprend l'uid de la personne qui a signalé l'entrée
+      // (champ `signalePar` du modèle)
+      'creePar': entree.signalePar,
       'dateCreation': Timestamp.now(),
     });
 

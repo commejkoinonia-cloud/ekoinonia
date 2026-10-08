@@ -1,4 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// MODIFIÉ : l'import cloud_firestore n'est plus nécessaire ici, depuis que
+// `dateDerniereConsultationNotifications` est converti par
+// LecteurFirestore.dateOuNull (ce modèle n'écrit jamais de Timestamp lui-même).
+import 'lecteur_firestore.dart';
 /// Représente le document `utilisateurs/{uid}` de la personne connectée.
 ///
 /// Toute la logique "qui a le droit de voir/faire quoi" dans l'interface
@@ -26,16 +29,29 @@ class UtilisateurProfil {
     this.dateDerniereConsultationNotifications
   });
 
+  /// MODIFIÉ : `(donnees['dateDerniereConsultationNotifications] as
+  /// Timestamp?)` levait "String is not a subtype of type Timestamp? in type
+  /// cast" si ce champ avait été écrit en texte. Comme il pilote le badge de
+  /// notifications, l'erreur remontait sur l'écran principal à chaque
+  /// ouverture. `dateOuNull` accepte Timestamp, DateTime, millisecondes et
+  /// texte ISO.
   factory UtilisateurProfil.depuisFirestore(String uid, Map<String, dynamic> donnees) {
     return UtilisateurProfil(
       uid: uid,
       nom: donnees['nom'] ?? '',
       prenom: donnees['prenom'] ?? '',
       classeId: donnees['classeId'] ?? '',
-      fonctions: List<String>.from(donnees['fonctions'] ?? []),
+      // MODIFIÉ : `List<String>.from(donnees['fonctions'] ?? [])` levait
+      // "type 'String' is not a subtype of type 'Iterable<dynamic>'" quand le
+      // champ `fonctions` avait été rempli avec un texte unique
+      // ("charge_materiel") au lieu d'une liste. Or ce champ pilote TOUS les
+      // droits de l'app : une seule exception faisait planter l'écran
+      // principal et le menu tiroir. `listeDeTextes` accepte les trois cas.
+      fonctions: LecteurFirestore.listeDeTextes(donnees['fonctions']),
       imageUrl: donnees['imageUrl'],
       actif: donnees['actif'] ?? true,
-      dateDerniereConsultationNotifications: (donnees['dateDerniereConsultationNotifications'] as Timestamp?)?.toDate(),
+      dateDerniereConsultationNotifications:
+          LecteurFirestore.dateOuNull(donnees['dateDerniereConsultationNotifications']),
     );
   }
 

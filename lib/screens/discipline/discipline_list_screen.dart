@@ -41,12 +41,16 @@ class DisciplineListScreen extends StatelessWidget {
                 itemCount: entrees.length,
                 itemBuilder: (context, index) {
                   final e = entrees[index];
-                  final nomConcerne = noms[e.utilisateurId] ?? 'Inconnu';
+                  final nomConcerne = e.concerneToutLeMonde
+                      ? 'Tous les moniteurs'
+                      : e.utilisateurIds.map((id) => noms[id] ?? 'Inconnu').join(', ');
                   final estResolu = e.statut == 'resolu';
 
                   return ListTile(
                     leading: Icon(
-                      estResolu ? Icons.check_circle_outline : Icons.error_outline,
+                      e.concerneToutLeMonde
+                          ? Icons.groups_outlined
+                          : (estResolu ? Icons.check_circle_outline : Icons.error_outline),
                       color: estResolu ? AppColors.vertBleute : AppColors.rougeAlerte,
                     ),
                     title: Text(nomConcerne),

@@ -40,6 +40,10 @@ class CommunicationService {
     await batch.commit();
   }
 
+  Future<void> modifierCommunication(String id, Communication communication) async {
+    await _db.collection('communications').doc(id).update(communication.versFirestore());
+  }
+
   Future<void> supprimerCommunication(String id) async {
     await _db.collection('communications').doc(id).delete();
   }

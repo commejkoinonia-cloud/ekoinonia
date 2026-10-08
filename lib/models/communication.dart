@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/lecteur_firestore.dart';
 import 'utilisateur_profil.dart';
 
 class Communication {
@@ -22,16 +23,20 @@ class Communication {
     this.piecesJointes = const [],
   });
 
+  /// Utilise LecteurFirestore plutôt que des cast directs, pour tolérer
+  /// une donnée saisie à la main dans la console Firebase qui ne serait
+  /// pas exactement du bon type (ex: une date en texte plutôt qu'un vrai
+  /// Timestamp, ou piecesJointes en texte simple plutôt qu'en tableau).
   factory Communication.depuisFirestore(String id, Map<String, dynamic> donnees) {
     return Communication(
       id: id,
       titre: donnees['titre'] ?? '',
       contenu: donnees['contenu'] ?? '',
-      datePublication: (donnees['datePublication'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      datePublication: LecteurFirestore.dateOuNull(donnees['datePublication']) ?? DateTime.now(),
       destinataire: donnees['destinataire'] ?? 'tous',
       classeId: donnees['classeId'],
       auteurId: donnees['auteurId'] ?? '',
-      piecesJointes: List<String>.from(donnees['piecesJointes'] ?? []),
+      piecesJointes: LecteurFirestore.listeDeTextes(donnees['piecesJointes']),
     );
   }
 

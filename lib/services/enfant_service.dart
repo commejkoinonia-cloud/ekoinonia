@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import '../models/enfant.dart';
 
 /// Toute la logique Firestore liée aux enfants passe par ce service.
@@ -12,16 +11,29 @@ class EnfantService {
   /// Le tri et le filtrage par texte de recherche se font ensuite côté
   /// écran (la liste d'enfants reste petite, pas besoin d'index complexe).
   Stream<List<Enfant>> streamEnfants() {
-    return _collection.orderBy('nom').snapshots().map((snapshot) {
-      final enfants = <Enfant>[];
-      for (final doc in snapshot.docs) {
-        try {
-          enfants.add(Enfant.depuisFirestore(doc.id, doc.data()));
-        } catch (erreur) {
-          debugPrint('Document enfants/${doc.id} ignoré : $erreur');
-        }
-      }
-      return enfants;
+    return _collection.orderBy('nom').snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Enfant.depuisFirestore(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
+  /// Enfants d'une classe précise, utilisé notamment pour la notation
+  /// des devoirs (on ne note que les enfants de la classe concernée).
+  Stream<List<Enfant>> streamEnfantsParClasse(String classeId) {
+    return _collection.where('classeId', isEqualTo: classeId).orderBy('nom').snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Enfant.depuisFirestore(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
+  /// Recalcule et enregistre la moyenne des devoirs d'un enfant.
+  /// Appelé par DevoirService à chaque note ajoutée/modifiée.
+  Future<void> metAJourMoyenneDevoirs(String enfantId, double moyenne, int nombreDevoirs) async {
+    await _collection.doc(enfantId).update({
+      'moyenneDevoirs': moyenne,
+      'nombreDevoirsNotes': nombreDevoirs,
     });
   }
 

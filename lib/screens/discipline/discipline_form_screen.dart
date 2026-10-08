@@ -19,8 +19,9 @@ class _DisciplineFormScreenState extends State<DisciplineFormScreen> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _mesurePriseController;
 
-  String? _utilisateurSelectionne;
+  Set<String> _utilisateursSelectionnes = {};
   String _statut = 'ouvert';
+  bool _concerneToutLeMonde = false;
   bool _enregistrementEnCours = false;
 
   bool get _modeEdition => widget.entreeExistante != null;
@@ -31,8 +32,9 @@ class _DisciplineFormScreenState extends State<DisciplineFormScreen> {
     final e = widget.entreeExistante;
     _descriptionController = TextEditingController(text: e?.description ?? '');
     _mesurePriseController = TextEditingController(text: e?.mesurePrise ?? '');
-    _utilisateurSelectionne = e?.utilisateurId;
+    _utilisateursSelectionnes = (e?.utilisateurIds ?? []).toSet();
     _statut = e?.statut ?? 'ouvert';
+    _concerneToutLeMonde = e?.concerneToutLeMonde ?? false;
   }
 
   @override
@@ -44,9 +46,9 @@ class _DisciplineFormScreenState extends State<DisciplineFormScreen> {
 
   Future<void> _enregistrer() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_utilisateurSelectionne == null) {
+    if (!_concerneToutLeMonde && _utilisateursSelectionnes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choisis la personne concernée.'), backgroundColor: AppColors.rougeAlerte),
+        const SnackBar(content: Text('Choisis au moins une personne.'), backgroundColor: AppColors.rougeAlerte),
       );
       return;
     }
@@ -55,11 +57,11 @@ class _DisciplineFormScreenState extends State<DisciplineFormScreen> {
     try {
       final entree = EntreeDiscipline(
         id: widget.entreeExistante?.id ?? '',
-        utilisateurId: _utilisateurSelectionne!,
+        utilisateurIds: _concerneToutLeMonde ? const [] : _utilisateursSelectionnes.toList(),
         date: widget.entreeExistante?.date ?? DateTime.now(),
         description: _descriptionController.text.trim(),
         mesurePrise: _mesurePriseController.text.trim(),
-        signalPar: widget.entreeExistante?.signalPar ?? widget.profil?.uid ?? '',
+        signalePar: widget.entreeExistante?.signalePar ?? widget.profil?.uid ?? '',
         statut: _statut,
         dateResolution: _statut == 'resolu' ? DateTime.now() : null,
       );
@@ -90,20 +92,51 @@ class _DisciplineFormScreenState extends State<DisciplineFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            StreamBuilder<List<UtilisateurProfil>>(
-              stream: UtilisateurService().streamUtilisateurs(),
-              builder: (context, snapshot) {
-                final utilisateurs = snapshot.data ?? [];
-                return DropdownButtonFormField<String>(
-                  initialValue: _utilisateurSelectionne,
-                  decoration: const InputDecoration(labelText: 'Personne concernée'),
-                  items: utilisateurs
-                      .map((u) => DropdownMenuItem(value: u.uid, child: Text(u.nomComplet)))
-                      .toList(),
-                  onChanged: _modeEdition ? null : (v) => setState(() => _utilisateurSelectionne = v),
-                );
-              },
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Règle générale pour tous les moniteurs'),
+              subtitle: const Text("Désactive pour cibler une ou plusieurs personnes précises"),
+              value: _concerneToutLeMonde,
+              onChanged: (v) => setState(() {
+                _concerneToutLeMonde = v;
+                if (v) _utilisateursSelectionnes.clear();
+              }),
             ),
+            if (!_concerneToutLeMonde) ...[
+              const SizedBox(height: 8),
+              const Text('Personne(s) concernée(s)', style: TextStyle(color: AppColors.texteClair)),
+              StreamBuilder<List<UtilisateurProfil>>(
+                stream: UtilisateurService().streamUtilisateurs(),
+                builder: (context, snapshot) {
+                  final utilisateurs = snapshot.data ?? [];
+                  if (utilisateurs.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  // Sélection multiple : une case à cocher par moniteur, pour
+                  // pouvoir cibler une seule personne OU plusieurs à la fois.
+                  return Column(
+                    children: utilisateurs.map((u) {
+                      final coche = _utilisateursSelectionnes.contains(u.uid);
+                      return CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(u.nomComplet),
+                        value: coche,
+                        onChanged: (v) => setState(() {
+                          if (v == true) {
+                            _utilisateursSelectionnes.add(u.uid);
+                          } else {
+                            _utilisateursSelectionnes.remove(u.uid);
+                          }
+                        }),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
             const SizedBox(height: 12),
             TextFormField(
               controller: _descriptionController,

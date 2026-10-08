@@ -51,11 +51,20 @@ class CommunicationsListScreen extends StatelessWidget {
                           Expanded(
                             child: Text(c.titre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           ),
-                          if (peutPublier)
+                          if (peutPublier) ...[
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.bleu),
+                              onPressed: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => CommunicationFormScreen(profil: profil, communicationExistante: c),
+                                ));
+                              },
+                            ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.rougeAlerte),
                               onPressed: () => CommunicationService().supprimerCommunication(c.id),
                             ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -64,7 +73,20 @@ class CommunicationsListScreen extends StatelessWidget {
                       if (c.piecesJointes.isNotEmpty)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(c.piecesJointes.first, height: 150, fit: BoxFit.cover),
+                          child: Image.network(
+                            c.piecesJointes.first,
+                            height: 150,
+                            fit: BoxFit.cover,
+                            // Si le lien est invalide (donnée corrompue, saisie
+                            // manuelle erronée...), on affiche une icône propre
+                            // plutôt que le message d'erreur brut de Flutter.
+                            errorBuilder: (context, erreur, pile) => Container(
+                              height: 150,
+                              color: AppColors.grisClair,
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.broken_image_outlined, color: AppColors.texteClair, size: 32),
+                            ),
+                          ),
                         ),
                       const SizedBox(height: 6),
                       Text(
